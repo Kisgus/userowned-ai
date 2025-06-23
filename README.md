@@ -34,62 +34,6 @@ Ecosystem Score = (Development Quality × 40%) +
                   (Financial Performance × 25%)
 ```
 
-### Development Quality (40%)
-- GitHub stars and fork velocity
-- Weekly commit activity
-- Issue resolution rates
-- Code repository health
-
-### Adoption Metrics (35%)
-- Daily active users
-- Transaction volume trends
-- DApp ecosystem growth
-- Cross-chain integrations
-
-### Financial Performance (25%)
-- Total Value Locked (TVL)
-- Capital efficiency ratios
-- Market cap development
-- Institutional adoption signals
-
-## 📈 Intelligence Products
-
-### 📱 Daily Updates (@userownedai)
-- Real-time ecosystem rankings
-- Development velocity alerts
-- Investment opportunity signals
-- Cross-chain intelligence
-
-### 📧 Weekly Newsletter
-- Comprehensive ecosystem analysis
-- VC-grade investment insights
-- Forward-looking indicators
-- Expert commentary and context
-
-### 📊 Live Dashboard
-- Interactive ecosystem rankings
-- Historical trend analysis
-- Comparative performance metrics
-- Export capabilities for research
-
-## 🎯 Investment Framework
-
-### High Conviction Signals
-- Development Score >85
-- Growing TVL with stable volatility
-- Real user adoption metrics
-- Technical innovation leadership
-
-### Risk Assessment
-- **LOW**: Production-ready with proven adoption
-- **MEDIUM**: Technical innovation with growth potential
-- **HIGH**: Experimental technology with moonshot potential
-
-### Portfolio Strategy
-- **Infrastructure Plays** (60%): Foundational AI x crypto platforms
-- **Innovation Bets** (25%): Breakthrough technology developments
-- **Moonshots** (15%): Pure AI exposure with supply constraints
-
 ## 🚀 About NEARWEEK
 
 UserOwned.ai is developed by [NEARWEEK](https://nearweek.com), the leading NEAR Protocol ecosystem intelligence platform with:
@@ -105,15 +49,6 @@ UserOwned.ai is developed by [NEARWEEK](https://nearweek.com), the leading NEAR 
 - **X/Twitter**: [@userownedai](https://twitter.com/userownedai)
 - **Newsletter**: [Subscribe](https://userowned.ai/newsletter)
 - **Parent Brand**: [@NEARWEEK](https://twitter.com/NEARWEEK)
-
-## ⚡ Automation
-
-This repository powers our daily intelligence system:
-
-- **GitHub Actions**: Automated data collection and analysis
-- **Real-time APIs**: Live GitHub, DeFi, and on-chain data
-- **Multi-channel Distribution**: X, Newsletter, Dashboard
-- **VC-grade Quality**: Professional investment intelligence
 
 ---
 

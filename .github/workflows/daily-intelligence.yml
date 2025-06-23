@@ -57,7 +57,7 @@ jobs:
       run: |
         echo "🧮 Calculating comprehensive ecosystem scores..."
         
-        # Simple scoring without bc (using awk instead)
+        # Simple scoring using awk
         NEAR_SCORE=$(echo "$NEAR_STARS $NEAR_FORKS $NEAR_TVL" | awk '{print int(($1/50 + $2/10)*2*40/100 + 85*35/100 + $3/50000000*25/100)}')
         ICP_SCORE=$(echo "$ICP_STARS $ICP_FORKS $ICP_TVL" | awk '{print int(($1/50 + $2/10)*2*40/100 + 78*35/100 + $3/10000000*25/100)}')
         TAO_SCORE=$(echo "$TAO_STARS $TAO_FORKS" | awk '{print int(($1/20 + $2/5)*1.5*60/100 + 70*40/100)}')
@@ -70,103 +70,54 @@ jobs:
       run: |
         echo "📊 Generating UserOwned.ai intelligence report..."
         
-        cat > /tmp/userowned_report.txt << 'EOFREPORT'
-🤖 USEROWNED.AI INTELLIGENCE REPORT
-AI x Crypto Ecosystem Analysis | $(date +%Y-%m-%d) | by NEARWEEK
-
-📈 EXECUTIVE SUMMARY
-Real-time analysis of AI cryptocurrency ecosystems reveals development momentum
-accelerating across infrastructure layers. Cross-chain intelligence shows
-convergence opportunities for artificial intelligence and blockchain protocols.
-
-🏆 AI ECOSYSTEM LEADERBOARD (0-100 Score)
-
-1. NEAR PROTOCOL | Score: $NEAR_SCORE/100 ⭐
-   • Development: $NEAR_STARS stars | $NEAR_FORKS forks | $NEAR_ISSUES issues
-   • DeFi Performance: $NEAR_TVL TVL | Leading intent innovation
-   • AI Integration: WebAssembly + intent execution for AI UX
-   • Investment Thesis: Production-ready AI infrastructure leader
-   • Risk Level: LOW - Established ecosystem with real adoption
-
-2. INTERNET COMPUTER | Score: $ICP_SCORE/100 🔬
-   • Development: $ICP_STARS stars | $ICP_FORKS forks | $ICP_ISSUES issues
-   • DeFi Performance: $ICP_TVL TVL | On-chain compute focus
-   • AI Integration: Direct AI model hosting on blockchain
-   • Investment Thesis: Technical innovation with breakthrough potential
-   • Risk Level: MEDIUM - Experimental but high upside
-
-3. BITTENSOR | Score: $TAO_SCORE/100 🧠
-   • Development: $TAO_STARS stars | $TAO_FORKS forks | $TAO_ISSUES issues
-   • AI Integration: Pure-play decentralized machine learning
-   • Investment Thesis: Novel tokenomics for AI incentives
-   • Risk Level: HIGH - Early stage with supply constraints
-
-💡 CROSS-ECOSYSTEM INTELLIGENCE
-
-DEVELOPMENT VELOCITY ANALYSIS:
-• Highest Activity: NEAR Protocol leading commit frequency
-• Innovation Focus: ICP pushing boundaries of on-chain compute
-• Pure AI Play: Bittensor pioneering ML tokenomics
-
-FINANCIAL PERFORMANCE MATRIX:
-• Total DeFi Market: $TOTAL_TVL across all chains
-• AI Crypto Share: Growing segment within broader DeFi ecosystem
-• Capital Efficiency: NEAR showing best development-to-TVL ratio
-
-INVESTMENT OPPORTUNITY SIGNALS:
-• HIGH CONVICTION: NEAR - Complete package with real usage
-• INNOVATION BET: ICP - Breakthrough technology potential
-• MOONSHOT: TAO - Pure AI exposure with limited supply
-
-🎯 VC-GRADE INSIGHTS
-
-MARKET POSITIONING:
-NEAR Protocol emerges as the clear infrastructure leader, combining
-mature development practices with innovative AI-UX features through
-intent execution. While competitors experiment, NEAR delivers production-ready solutions.
-
-📅 FORWARD INDICATORS
-
-NEXT 30 DAYS WATCH LIST:
-• NEAR ecosystem AI project announcements
-• ICP mainnet AI hosting adoption metrics
-• Cross-chain AI protocol integrations
-• VC funding rounds in AI x crypto space
-
-🚀 USEROWNED.AI METHODOLOGY
-
-DATA SOURCES:
-✅ GitHub API - Real-time development tracking
-✅ DefiLlama - Verified on-chain financial metrics
-✅ Multi-source validation - Cross-reference for accuracy
-✅ Quantitative scoring - Objective 0-100 ecosystem ratings
-
-ANALYSIS FRAMEWORK:
-• 40% Development Quality (GitHub metrics, code velocity)
-• 35% Adoption Signals (TVL, usage, community growth)
-• 25% Financial Performance (market metrics, capital efficiency)
-
----
-UserOwned.ai by NEARWEEK | The most comprehensive AI x crypto intelligence
-Subscribe: userowned.ai | Follow: @userownedai | Partner: @NEARWEEK
-EOFREPORT
-
-        # Replace variables in report
-        sed -i "s/\$NEAR_SCORE/$NEAR_SCORE/g" /tmp/userowned_report.txt
-        sed -i "s/\$ICP_SCORE/$ICP_SCORE/g" /tmp/userowned_report.txt
-        sed -i "s/\$TAO_SCORE/$TAO_SCORE/g" /tmp/userowned_report.txt
-        sed -i "s/\$NEAR_STARS/$NEAR_STARS/g" /tmp/userowned_report.txt
-        sed -i "s/\$NEAR_FORKS/$NEAR_FORKS/g" /tmp/userowned_report.txt
-        sed -i "s/\$NEAR_ISSUES/$NEAR_ISSUES/g" /tmp/userowned_report.txt
-        sed -i "s/\$ICP_STARS/$ICP_STARS/g" /tmp/userowned_report.txt
-        sed -i "s/\$ICP_FORKS/$ICP_FORKS/g" /tmp/userowned_report.txt
-        sed -i "s/\$ICP_ISSUES/$ICP_ISSUES/g" /tmp/userowned_report.txt
-        sed -i "s/\$TAO_STARS/$TAO_STARS/g" /tmp/userowned_report.txt
-        sed -i "s/\$TAO_FORKS/$TAO_FORKS/g" /tmp/userowned_report.txt
-        sed -i "s/\$TAO_ISSUES/$TAO_ISSUES/g" /tmp/userowned_report.txt
-        sed -i "s/\$NEAR_TVL/$NEAR_TVL/g" /tmp/userowned_report.txt
-        sed -i "s/\$ICP_TVL/$ICP_TVL/g" /tmp/userowned_report.txt
-        sed -i "s/\$TOTAL_TVL/$TOTAL_TVL/g" /tmp/userowned_report.txt
+        echo "🤖 USEROWNED.AI INTELLIGENCE REPORT" > /tmp/userowned_report.txt
+        echo "AI x Crypto Ecosystem Analysis | $(date +%Y-%m-%d) | by NEARWEEK" >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "📈 EXECUTIVE SUMMARY" >> /tmp/userowned_report.txt
+        echo "Real-time analysis of AI cryptocurrency ecosystems reveals development momentum" >> /tmp/userowned_report.txt
+        echo "accelerating across infrastructure layers. Cross-chain intelligence shows" >> /tmp/userowned_report.txt
+        echo "convergence opportunities for artificial intelligence and blockchain protocols." >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "🏆 AI ECOSYSTEM LEADERBOARD (0-100 Score)" >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "1. NEAR PROTOCOL | Score: $NEAR_SCORE/100 ⭐" >> /tmp/userowned_report.txt
+        echo "   • Development: $NEAR_STARS stars | $NEAR_FORKS forks | $NEAR_ISSUES issues" >> /tmp/userowned_report.txt
+        echo "   • DeFi Performance: $NEAR_TVL TVL | Leading intent innovation" >> /tmp/userowned_report.txt
+        echo "   • AI Integration: WebAssembly + intent execution for AI UX" >> /tmp/userowned_report.txt
+        echo "   • Investment Thesis: Production-ready AI infrastructure leader" >> /tmp/userowned_report.txt
+        echo "   • Risk Level: LOW - Established ecosystem with real adoption" >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "2. INTERNET COMPUTER | Score: $ICP_SCORE/100 🔬" >> /tmp/userowned_report.txt
+        echo "   • Development: $ICP_STARS stars | $ICP_FORKS forks | $ICP_ISSUES issues" >> /tmp/userowned_report.txt
+        echo "   • DeFi Performance: $ICP_TVL TVL | On-chain compute focus" >> /tmp/userowned_report.txt
+        echo "   • AI Integration: Direct AI model hosting on blockchain" >> /tmp/userowned_report.txt
+        echo "   • Investment Thesis: Technical innovation with breakthrough potential" >> /tmp/userowned_report.txt
+        echo "   • Risk Level: MEDIUM - Experimental but high upside" >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "3. BITTENSOR | Score: $TAO_SCORE/100 🧠" >> /tmp/userowned_report.txt
+        echo "   • Development: $TAO_STARS stars | $TAO_FORKS forks | $TAO_ISSUES issues" >> /tmp/userowned_report.txt
+        echo "   • AI Integration: Pure-play decentralized machine learning" >> /tmp/userowned_report.txt
+        echo "   • Investment Thesis: Novel tokenomics for AI incentives" >> /tmp/userowned_report.txt
+        echo "   • Risk Level: HIGH - Early stage with supply constraints" >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "💡 CROSS-ECOSYSTEM INTELLIGENCE" >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "INVESTMENT OPPORTUNITY SIGNALS:" >> /tmp/userowned_report.txt
+        echo "• HIGH CONVICTION: NEAR - Complete package with real usage" >> /tmp/userowned_report.txt
+        echo "• INNOVATION BET: ICP - Breakthrough technology potential" >> /tmp/userowned_report.txt
+        echo "• MOONSHOT: TAO - Pure AI exposure with limited supply" >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "🚀 USEROWNED.AI METHODOLOGY" >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "DATA SOURCES:" >> /tmp/userowned_report.txt
+        echo "✅ GitHub API - Real-time development tracking" >> /tmp/userowned_report.txt
+        echo "✅ DefiLlama - Verified on-chain financial metrics" >> /tmp/userowned_report.txt
+        echo "✅ Multi-source validation - Cross-reference for accuracy" >> /tmp/userowned_report.txt
+        echo "✅ Quantitative scoring - Objective 0-100 ecosystem ratings" >> /tmp/userowned_report.txt
+        echo "" >> /tmp/userowned_report.txt
+        echo "---" >> /tmp/userowned_report.txt
+        echo "UserOwned.ai by NEARWEEK | The most comprehensive AI x crypto intelligence" >> /tmp/userowned_report.txt
+        echo "Subscribe: userowned.ai | Follow: @userownedai | Partner: @NEARWEEK" >> /tmp/userowned_report.txt
 
     - name: Display Results
       run: |
