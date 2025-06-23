@@ -114,14 +114,14 @@ jobs:
         echo "" >> /tmp/userowned_report.txt
         echo "1. NEAR PROTOCOL | Score: $NEAR_SCORE/100 ⭐" >> /tmp/userowned_report.txt
         echo "   • Development: $NEAR_STARS stars | $NEAR_FORKS forks | $NEAR_ISSUES issues" >> /tmp/userowned_report.txt
-        echo "   • DeFi Performance: \$$NEAR_TVL TVL | Leading intent innovation" >> /tmp/userowned_report.txt
+        echo "   • DeFi Performance: $NEAR_TVL TVL | Leading intent innovation" >> /tmp/userowned_report.txt
         echo "   • AI Integration: WebAssembly + intent execution for AI UX" >> /tmp/userowned_report.txt
         echo "   • Investment Thesis: Production-ready AI infrastructure leader" >> /tmp/userowned_report.txt
         echo "   • Risk Level: LOW - Established ecosystem with real adoption" >> /tmp/userowned_report.txt
         echo "" >> /tmp/userowned_report.txt
         echo "2. INTERNET COMPUTER | Score: $ICP_SCORE/100 🔬" >> /tmp/userowned_report.txt
         echo "   • Development: $ICP_STARS stars | $ICP_FORKS forks | $ICP_ISSUES issues" >> /tmp/userowned_report.txt
-        echo "   • DeFi Performance: \$$ICP_TVL TVL | On-chain compute focus" >> /tmp/userowned_report.txt
+        echo "   • DeFi Performance: $ICP_TVL TVL | On-chain compute focus" >> /tmp/userowned_report.txt
         echo "   • AI Integration: Direct AI model hosting on blockchain" >> /tmp/userowned_report.txt
         echo "   • Investment Thesis: Technical innovation with breakthrough potential" >> /tmp/userowned_report.txt
         echo "   • Risk Level: MEDIUM - Experimental but high upside" >> /tmp/userowned_report.txt
@@ -140,7 +140,7 @@ jobs:
         echo "• MOONSHOT: TAO - Pure AI exposure with limited supply" >> /tmp/userowned_report.txt
         echo "" >> /tmp/userowned_report.txt
         echo "FINANCIAL PERFORMANCE MATRIX:" >> /tmp/userowned_report.txt
-        echo "• Total DeFi Market: \$$TOTAL_TVL across all chains" >> /tmp/userowned_report.txt
+        echo "• Total DeFi Market: $TOTAL_TVL across all chains" >> /tmp/userowned_report.txt
         echo "• AI Crypto Share: Growing segment within broader DeFi ecosystem" >> /tmp/userowned_report.txt
         echo "• Capital Efficiency: NEAR showing best development-to-TVL ratio" >> /tmp/userowned_report.txt
         echo "" >> /tmp/userowned_report.txt
@@ -178,24 +178,6 @@ jobs:
         
         echo "✅ Intelligence report generated successfully"
 
-    - name: Send to Telegram (Optional)
-      run: |
-        echo "📱 Attempting to send to Telegram..."
-        
-        # Check if bot token exists
-        if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ]; then
-          echo "Bot token found, sending to Telegram..."
-          MESSAGE=$(cat /tmp/userowned_report.txt | head -c 4000)  # Telegram has 4096 char limit
-          
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{\"chat_id\": \"-1001559796949\", \"text\": \"$MESSAGE\"}" || echo "Telegram send failed, continuing..."
-          
-          echo "✅ Telegram delivery attempted"
-        else
-          echo "⚠️ No Telegram bot token found, skipping Telegram delivery"
-        fi
-
     - name: Display Results
       run: |
         echo "🎯 UserOwned.ai Intelligence Report Generated Successfully!"
@@ -206,9 +188,11 @@ jobs:
         echo "🥉 Bittensor: $TAO_SCORE/100"
         echo ""
         echo "📋 Full Report Preview:"
-        echo "=================================="
-        head -20 /tmp/userowned_report.txt
-        echo "=================================="
+        echo "=========================================="
+        head -30 /tmp/userowned_report.txt
+        echo "=========================================="
         echo ""
         echo "✅ UserOwned.ai by NEARWEEK intelligence system operational!"
         echo "🚀 Ready for daily 14:40 CET automation!"
+        echo "📞 Next: Optimize @userownedai X account & set up newsletter"
+        echo "💰 Target: 25k followers by Q1 2026"
