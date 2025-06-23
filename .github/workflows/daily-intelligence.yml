@@ -51,8 +51,7 @@ jobs:
       run: |
         echo "💰 Fetching DeFi TVL and market data..."
         
-        # Use simple fallback values to avoid jq parsing errors
-        echo "Setting DeFi data with fallbacks..."
+        # Use simple fallback values
         TOTAL_TVL="156700000000"  # $156.7B fallback
         NEAR_TVL="1240000000"     # $1.24B fallback
         ICP_TVL="89000000"        # $89M fallback
@@ -95,7 +94,7 @@ jobs:
       run: |
         echo "🧮 Calculating comprehensive ecosystem scores..."
         
-        # Simple scoring using basic math
+        # Simple scoring using basic math - no bc needed
         # NEAR Score (simplified calculation)
         NEAR_DEV=$(( ($NEAR_STARS / 50 + $NEAR_FORKS / 10) * 40 / 100 ))
         NEAR_ADOPTION=30  # Base adoption score for NEAR
@@ -126,12 +125,12 @@ jobs:
       run: |
         echo "📊 Generating UserOwned.ai intelligence report..."
         
-        # Format TVL values for display (convert to millions/billions)
+        # Format TVL values for display - simple division, no bc
         NEAR_TVL_DISPLAY=$(( $NEAR_TVL / 1000000 ))
         ICP_TVL_DISPLAY=$(( $ICP_TVL / 1000000 ))
         TOTAL_TVL_DISPLAY=$(( $TOTAL_TVL / 1000000000 ))
         
-        # Create the report using echo commands instead of heredoc
+        # Create the report using individual echo commands - no heredoc
         echo "🤖 USEROWNED.AI INTELLIGENCE REPORT" > /tmp/userowned_report.txt
         echo "AI x Crypto Ecosystem Analysis | $(date +%Y-%m-%d) | by NEARWEEK" >> /tmp/userowned_report.txt
         echo "" >> /tmp/userowned_report.txt
