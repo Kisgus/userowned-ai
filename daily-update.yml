@@ -72,7 +72,7 @@ jobs:
         curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -H "Content-Type: application/json" \
           -d '{
-            "chat_id": "7704194297",
+            "chat_id": "-1001559796949",
             "text": ${{ toJson(steps.content.outputs.TELEGRAM_CONTENT) }},
             "parse_mode": "HTML"
           }'
@@ -93,7 +93,7 @@ jobs:
         curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -H "Content-Type: application/json" \
           -d '{
-            "chat_id": "7704194297",
+            "chat_id": "-1001559796949",
             "text": "✅ Daily Update Automation Completed!\n\n📱 Telegram: ✅ Posted\n🐦 X/Twitter: ✅ Posted via Buffer\n📅 Date: ${{ steps.content.outputs.DATE }}\n⏰ Time: '$(date +"%H:%M UTC")''\n\n🤖 Next update: Tomorrow 9 AM UTC",
             "parse_mode": "HTML"
           }'
