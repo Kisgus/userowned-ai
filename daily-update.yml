@@ -34,18 +34,14 @@ jobs:
         });
         
         const ORGS_TO_MONITOR = [
-          { org: 'opentensor', name: 'Bittensor' },
-          { org: 'Virtual-Protocol', name: 'Virtual Protocol' }, 
-          { org: 'nearai', name: 'NEAR AI' },
-          { org: 'near', name: 'NEAR Protocol' }
+          { org: 'opentensor', name: 'Bittensor', prefix: 'BITTENSOR' },
+          { org: 'Virtual-Protocol', name: 'Virtual Protocol', prefix: 'VIRTUAL PROTOCOL' }, 
+          { org: 'nearai', name: 'NEAR AI', prefix: 'NEAR AI' },
+          { org: 'near', name: 'NEAR Protocol', prefix: 'NEAR PROTOCOL' }
         ];
         
         const yesterday = moment().subtract(1, 'days').format('YYYY-MM-DD');
         const today = moment().format('DD.MM.YYYY');
-        
-        function formatRepoName(repoName) {
-          return repoName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        }
         
         function truncateText(text, maxLength) {
           if (text.length <= maxLength) return text;
@@ -59,18 +55,19 @@ jobs:
             const { data: repos } = await octokit.rest.repos.listForOrg({
               org: orgData.org,
               sort: 'updated',
-              per_page: 15
+              per_page: 20
             });
             
             const activities = [];
             
-            for (const repo of repos.slice(0, 8)) {
+            for (const repo of repos.slice(0, 10)) {
               try {
+                // Get recent commits
                 const { data: commits } = await octokit.rest.repos.listCommits({
                   owner: orgData.org,
                   repo: repo.name,
                   since: `${yesterday}T00:00:00Z`,
-                  per_page: 5
+                  per_page: 10
                 });
                 
                 if (commits.length > 0) {
@@ -78,21 +75,24 @@ jobs:
                     type: 'commits',
                     repo: repo.name,
                     org: orgData.name,
+                    orgPrefix: orgData.prefix,
                     count: commits.length,
-                    commits: commits.slice(0, 3).map(c => ({
+                    commits: commits.slice(0, 5).map(c => ({
                       message: c.commit.message.split('\n')[0],
                       author: c.commit.author.name,
-                      sha: c.sha.substring(0, 7)
+                      sha: c.sha.substring(0, 7),
+                      url: c.html_url
                     }))
                   });
                 }
                 
+                // Get recent pull requests
                 const { data: pulls } = await octokit.rest.pulls.list({
                   owner: orgData.org,
                   repo: repo.name,
                   state: 'all',
                   sort: 'updated',
-                  per_page: 3
+                  per_page: 5
                 });
                 
                 const recentPulls = pulls.filter(p => 
@@ -104,19 +104,23 @@ jobs:
                     type: 'pulls',
                     repo: repo.name,
                     org: orgData.name,
+                    orgPrefix: orgData.prefix,
                     pulls: recentPulls.map(p => ({
                       title: p.title,
                       state: p.state,
-                      number: p.number
+                      number: p.number,
+                      url: p.html_url,
+                      body: p.body
                     }))
                   });
                 }
                 
+                // Get recent releases
                 try {
                   const { data: releases } = await octokit.rest.repos.listReleases({
                     owner: orgData.org,
                     repo: repo.name,
-                    per_page: 2
+                    per_page: 3
                   });
                   
                   const recentReleases = releases.filter(r => 
@@ -128,9 +132,11 @@ jobs:
                       type: 'release',
                       repo: repo.name,
                       org: orgData.name,
+                      orgPrefix: orgData.prefix,
                       release: {
                         name: recentReleases[0].name || recentReleases[0].tag_name,
                         body: recentReleases[0].body,
+                        url: recentReleases[0].html_url,
                         published_at: recentReleases[0].published_at
                       }
                     });
@@ -167,17 +173,17 @@ jobs:
               const priority = { release: 3, pulls: 2, commits: 1 };
               return priority[b.type] - priority[a.type];
             })
-            .slice(0, 7);
+            .slice(0, 8);
           
           sortedActivities.forEach(activity => {
             if (activity.type === 'release') {
-              content += `**${itemCount}/ NEW RELEASE** - ${formatRepoName(activity.repo)}\n\n`;
+              content += `**${itemCount}/ NEW RELEASE** - ${activity.repo}\n\n`;
               content += `**What changed:**\n\n`;
               
               if (activity.release.body) {
                 const releaseNotes = activity.release.body
                   .split('\n')
-                  .filter(line => line.trim())
+                  .filter(line => line.trim() && !line.startsWith('#'))
                   .slice(0, 4)
                   .map(line => `• ${line.replace(/^[-*]\s*/, '').trim()}`)
                   .join('\n');
@@ -187,50 +193,51 @@ jobs:
               }
               
               content += `**Why it matters:**\n\n`;
-              content += `This release brings important updates to the ${activity.org} ecosystem, enhancing functionality and developer experience.\n\n`;
+              content += `This release brings important updates to the ${activity.org} ecosystem with enhanced functionality and improved developer experience.\n\n`;
               
             } else if (activity.type === 'pulls') {
               const mergedPulls = activity.pulls.filter(p => p.state === 'closed');
+              const openPulls = activity.pulls.filter(p => p.state === 'open');
               
               if (mergedPulls.length > 0) {
-                content += `**${itemCount}/ PULL REQUESTS MERGED** - ${formatRepoName(activity.repo)}\n\n`;
+                content += `**${itemCount}/ PULL REQUESTS MERGED** - ${activity.repo}\n\n`;
                 content += `**What changed:**\n\n`;
-                mergedPulls.slice(0, 3).forEach(pull => {
-                  content += `• ${truncateText(pull.title, 80)}\n`;
+                mergedPulls.slice(0, 4).forEach(pull => {
+                  content += `• ${truncateText(pull.title, 100)}\n`;
                 });
                 content += `\n**Why it matters:**\n\n`;
-                content += `These merged pull requests enhance ${activity.repo} functionality and improve the ${activity.org} development experience.\n\n`;
+                content += `These merged pull requests enhance ${activity.repo} functionality and continue active development in the ${activity.org} ecosystem.\n\n`;
+              } else if (openPulls.length > 0) {
+                content += `**${itemCount}/ ACTIVE PULL REQUESTS** - ${activity.repo}\n\n`;
+                content += `**What's being worked on:**\n\n`;
+                openPulls.slice(0, 4).forEach(pull => {
+                  content += `• ${truncateText(pull.title, 100)}\n`;
+                });
+                content += `\n**Why it matters:**\n\n`;
+                content += `Active development continues with ${openPulls.length} pull requests under review in the ${activity.org} ecosystem.\n\n`;
               }
               
             } else if (activity.type === 'commits') {
-              content += `**${itemCount}/ DEVELOPMENT ACTIVITY** - ${formatRepoName(activity.repo)}\n\n`;
+              content += `**${itemCount}/ DEVELOPMENT ACTIVITY** - ${activity.repo}\n\n`;
               content += `**What changed:**\n\n`;
-              activity.commits.forEach(commit => {
-                content += `• ${truncateText(commit.message, 70)} (${commit.sha})\n`;
+              activity.commits.slice(0, 4).forEach(commit => {
+                content += `• ${truncateText(commit.message, 80)}\n`;
               });
               content += `\n**Why it matters:**\n\n`;
-              content += `Active development continues on ${activity.repo}, with ${activity.count} commits improving the ${activity.org} ecosystem.\n\n`;
+              content += `Active development continues with ${activity.count} commits pushing forward ${activity.org} development.\n\n`;
             }
             
             itemCount++;
           });
           
           if (content === '') {
-            content = 'No significant GitHub activity detected in the past 24 hours for monitored repositories.\n\n';
+            content = 'No significant GitHub activity detected in the past 24 hours for monitored AI x Crypto repositories.\n\n';
           }
-          
-          content += `📊 **Full Development Analytics**: https://userowned.ai\n\n`;
-          content += `Built by @NEARWEEK | Follow @userownedai\n`;
-          content += `#AI #Crypto #GitHub #Development #OpenSource`;
           
           return title + content;
         }
         
         function generateTwitterReport(allActivities) {
-          const title = `AI x CRYPTO GITHUB UPDATES [${today}] 📟\n\n`;
-          
-          let content = '';
-          
           const sortedActivities = allActivities
             .filter(activity => activity.length > 0)
             .flat()
@@ -238,32 +245,69 @@ jobs:
               const priority = { release: 3, pulls: 2, commits: 1 };
               return priority[b.type] - priority[a.type];
             })
-            .slice(0, 4);
+            .slice(0, 6);
           
           if (sortedActivities.length === 0) {
-            content = 'No major GitHub activity in monitored AI x Crypto repos today.\n\n';
-          } else {
-            content += 'Latest development activity:\n\n';
-            
-            sortedActivities.forEach((activity, index) => {
-              if (activity.type === 'release') {
-                content += `🚀 ${activity.org}: New release in ${formatRepoName(activity.repo)}\n`;
-              } else if (activity.type === 'pulls') {
-                const mergedCount = activity.pulls.filter(p => p.state === 'closed').length;
-                if (mergedCount > 0) {
-                  content += `🔀 ${activity.org}: ${mergedCount} PRs merged in ${formatRepoName(activity.repo)}\n`;
-                }
-              } else if (activity.type === 'commits') {
-                content += `💻 ${activity.org}: ${activity.count} commits in ${formatRepoName(activity.repo)}\n`;
-              }
-            });
-            content += '\n';
+            return `AI x CRYPTO GITHUB UPDATES [${today}] 📟\n\nWhat shipped on the @opentensor @Virtual_Prot @nearai @nearprotocol GitHub today? Here's the latest from the AI x Crypto devs!\n\nNo major GitHub activity in monitored repos today.\n\n#AI #Crypto #GitHub #Development`;
           }
           
-          content += `📊 Full analysis: https://userowned.ai\n\n`;
-          content += `#AI #Crypto #GitHub #OpenSource`;
+          let content = `AI x CRYPTO GITHUB UPDATES [${today}] 📟\n\nWhat shipped on the @opentensor @Virtual_Prot @nearai @nearprotocol GitHub today? Here's the latest from the AI x Crypto devs!\n\n`;
           
-          return title + content;
+          let threadNumber = 1;
+          
+          sortedActivities.forEach(activity => {
+            content += `${threadNumber}/\n`;
+            
+            if (activity.type === 'release') {
+              content += `${activity.orgPrefix} NEW RELEASE - ${activity.repo}\n\n`;
+              content += `What changed:\n\n`;
+              
+              if (activity.release.body) {
+                const releaseNotes = activity.release.body
+                  .split('\n')
+                  .filter(line => line.trim() && !line.startsWith('#'))
+                  .slice(0, 3)
+                  .map(line => `• ${line.replace(/^[-*]\s*/, '').trim()}`)
+                  .join('\n');
+                content += `${releaseNotes}\n\n`;
+              } else {
+                content += `• Released ${activity.release.name}\n\n`;
+              }
+              
+              content += `Why it matters:\n\nThis release brings important updates to the ${activity.org} ecosystem.\n\n`;
+              
+            } else if (activity.type === 'pulls') {
+              const mergedPulls = activity.pulls.filter(p => p.state === 'closed');
+              
+              if (mergedPulls.length > 0) {
+                content += `${activity.orgPrefix} PULL REQUESTS MERGED - ${activity.repo}\n\n`;
+                content += `What changed:\n\n`;
+                mergedPulls.slice(0, 3).forEach(pull => {
+                  content += `• ${truncateText(pull.title, 60)}\n`;
+                });
+                content += `\nWhy it matters:\n\nThese PRs enhance ${activity.repo} functionality.\n\n`;
+              }
+              
+            } else if (activity.type === 'commits') {
+              content += `${activity.orgPrefix} DEVELOPMENT ACTIVITY - ${activity.repo}\n\n`;
+              content += `What changed:\n\n`;
+              activity.commits.slice(0, 3).forEach(commit => {
+                content += `• ${truncateText(commit.message, 50)}\n`;
+              });
+              content += `\nWhy it matters:\n\n${activity.count} commits advancing ${activity.org} development.\n\n`;
+            }
+            
+            threadNumber++;
+          });
+          
+          content += `Check out the full repos:\n`;
+          content += `https://github.com/opentensor\n`;
+          content += `https://github.com/Virtual-Protocol\n`;
+          content += `https://github.com/nearai\n`;
+          content += `https://github.com/near\n\n`;
+          content += `#AI #Crypto #GitHub #Development`;
+          
+          return content;
         }
         
         async function main() {
@@ -347,6 +391,6 @@ jobs:
           -H "Content-Type: application/json" \
           -d '{
             "chat_id": "-1001559796949",
-            "text": "✅ **GitHub Data Reports Sent Successfully!**\n\n📱 Telegram: ✅ Posted\n🐦 X/Twitter: ✅ Posted\n📅 Date: ${{ steps.reports.outputs.DATE }}\n📊 Data Source: Live GitHub API\n⏰ Next update: Tomorrow 9 AM UTC",
+            "text": "✅ **Pure GitHub Data Reports Sent!**\n\n📱 Telegram: ✅ Posted\n🐦 X/Twitter: ✅ Posted\n📅 Date: ${{ steps.reports.outputs.DATE }}\n📊 Data: GitHub API only\n⏰ Next: Tomorrow 9 AM UTC",
             "parse_mode": "Markdown"
           }'
