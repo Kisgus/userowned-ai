@@ -1,61 +1,312 @@
-name: Automated Daily AI x Crypto Update
+name: AI x Crypto GitHub Daily Updates
 
 on:
   schedule:
-    - cron: '0 9 * * *'
-  workflow_dispatch:
+    - cron: '0 9 * * *'  # Daily at 9 AM UTC
+  workflow_dispatch:  # Manual trigger for testing
 
 jobs:
-  send-daily-update:
+  github-data-updates:
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Generate daily content
-      id: content
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
       run: |
-        DATE=$(date +%Y-%m-%d)
+        npm init -y
+        npm install @octokit/rest moment
+    
+    - name: Fetch GitHub Data and Generate Reports
+      run: |
+        cat > github_report_generator.js << 'EOF'
+        const { Octokit } = require('@octokit/rest');
+        const moment = require('moment');
         
-        TELEGRAM_CONTENT="🤖 UserOwned.ai Daily Intelligence Report $DATE
+        const octokit = new Octokit({
+          auth: process.env.GITHUB_TOKEN
+        });
         
-        📊 AI x Crypto Ecosystem Analysis:
+        const ORGS_TO_MONITOR = [
+          { org: 'opentensor', name: 'Bittensor' },
+          { org: 'Virtual-Protocol', name: 'Virtual Protocol' }, 
+          { org: 'nearai', name: 'NEAR AI' },
+          { org: 'near', name: 'NEAR Protocol' }
+        ];
         
-        🔥 Today's Top Performers:
-        • NEAR Protocol: Smart contract deployments +24% 
-        • Bittensor: Mining efficiency optimization ongoing
-        • Fetch.ai: Autonomous agent transactions surge (+18%)
-        • Injective: Cross-chain DeFi volume growth (+15%)
+        const yesterday = moment().subtract(1, 'days').format('YYYY-MM-DD');
+        const today = moment().format('DD.MM.YYYY');
         
-        📈 Key Ecosystem Metrics:
-        • Overall Health Score: 89/100 (+3 from yesterday)
-        • Development Velocity: +15% week-over-week
-        • On-chain Activity: 847,000 transactions (+12%)
-        • AI DeFi TVL: \$2.4B (+8.5% in 24h)
+        function formatRepoName(repoName) {
+          return repoName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
         
-        📊 Detailed Analytics: https://userowned.ai
+        function truncateText(text, maxLength) {
+          if (text.length <= maxLength) return text;
+          return text.substring(0, maxLength - 3) + '...';
+        }
         
-        Built by @NEARWEEK | Follow @userownedai
-        #AI #Crypto #DeFi #NEAR #Bittensor #Web3"
+        async function fetchOrgActivity(orgData) {
+          try {
+            console.log(`Fetching data for ${orgData.name}...`);
+            
+            const { data: repos } = await octokit.rest.repos.listForOrg({
+              org: orgData.org,
+              sort: 'updated',
+              per_page: 15
+            });
+            
+            const activities = [];
+            
+            for (const repo of repos.slice(0, 8)) {
+              try {
+                const { data: commits } = await octokit.rest.repos.listCommits({
+                  owner: orgData.org,
+                  repo: repo.name,
+                  since: `${yesterday}T00:00:00Z`,
+                  per_page: 5
+                });
+                
+                if (commits.length > 0) {
+                  activities.push({
+                    type: 'commits',
+                    repo: repo.name,
+                    org: orgData.name,
+                    count: commits.length,
+                    commits: commits.slice(0, 3).map(c => ({
+                      message: c.commit.message.split('\n')[0],
+                      author: c.commit.author.name,
+                      sha: c.sha.substring(0, 7)
+                    }))
+                  });
+                }
+                
+                const { data: pulls } = await octokit.rest.pulls.list({
+                  owner: orgData.org,
+                  repo: repo.name,
+                  state: 'all',
+                  sort: 'updated',
+                  per_page: 3
+                });
+                
+                const recentPulls = pulls.filter(p => 
+                  moment(p.updated_at).isAfter(moment().subtract(1, 'days'))
+                );
+                
+                if (recentPulls.length > 0) {
+                  activities.push({
+                    type: 'pulls',
+                    repo: repo.name,
+                    org: orgData.name,
+                    pulls: recentPulls.map(p => ({
+                      title: p.title,
+                      state: p.state,
+                      number: p.number
+                    }))
+                  });
+                }
+                
+                try {
+                  const { data: releases } = await octokit.rest.repos.listReleases({
+                    owner: orgData.org,
+                    repo: repo.name,
+                    per_page: 2
+                  });
+                  
+                  const recentReleases = releases.filter(r => 
+                    moment(r.published_at).isAfter(moment().subtract(7, 'days'))
+                  );
+                  
+                  if (recentReleases.length > 0) {
+                    activities.push({
+                      type: 'release',
+                      repo: repo.name,
+                      org: orgData.name,
+                      release: {
+                        name: recentReleases[0].name || recentReleases[0].tag_name,
+                        body: recentReleases[0].body,
+                        published_at: recentReleases[0].published_at
+                      }
+                    });
+                  }
+                } catch (e) {
+                  // Releases endpoint might not be available
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+              } catch (repoError) {
+                console.log(`Error fetching ${repo.name}: ${repoError.message}`);
+              }
+            }
+            
+            return activities;
+            
+          } catch (error) {
+            console.error(`Error fetching ${orgData.name}:`, error.message);
+            return [];
+          }
+        }
         
-        TWITTER_CONTENT="🤖 UserOwned.ai Daily Report $DATE
+        function generateTelegramReport(allActivities) {
+          const title = `AI x CRYPTO GITHUB UPDATES [${today}] 📟\n\nWhat shipped on GitHub today? Here's the latest from the AI x Crypto devs!\n\n`;
+          
+          let content = '';
+          let itemCount = 1;
+          
+          const sortedActivities = allActivities
+            .filter(activity => activity.length > 0)
+            .flat()
+            .sort((a, b) => {
+              const priority = { release: 3, pulls: 2, commits: 1 };
+              return priority[b.type] - priority[a.type];
+            })
+            .slice(0, 7);
+          
+          sortedActivities.forEach(activity => {
+            if (activity.type === 'release') {
+              content += `**${itemCount}/ NEW RELEASE** - ${formatRepoName(activity.repo)}\n\n`;
+              content += `**What changed:**\n\n`;
+              
+              if (activity.release.body) {
+                const releaseNotes = activity.release.body
+                  .split('\n')
+                  .filter(line => line.trim())
+                  .slice(0, 4)
+                  .map(line => `• ${line.replace(/^[-*]\s*/, '').trim()}`)
+                  .join('\n');
+                content += `${releaseNotes}\n\n`;
+              } else {
+                content += `• Released ${activity.release.name}\n\n`;
+              }
+              
+              content += `**Why it matters:**\n\n`;
+              content += `This release brings important updates to the ${activity.org} ecosystem, enhancing functionality and developer experience.\n\n`;
+              
+            } else if (activity.type === 'pulls') {
+              const mergedPulls = activity.pulls.filter(p => p.state === 'closed');
+              
+              if (mergedPulls.length > 0) {
+                content += `**${itemCount}/ PULL REQUESTS MERGED** - ${formatRepoName(activity.repo)}\n\n`;
+                content += `**What changed:**\n\n`;
+                mergedPulls.slice(0, 3).forEach(pull => {
+                  content += `• ${truncateText(pull.title, 80)}\n`;
+                });
+                content += `\n**Why it matters:**\n\n`;
+                content += `These merged pull requests enhance ${activity.repo} functionality and improve the ${activity.org} development experience.\n\n`;
+              }
+              
+            } else if (activity.type === 'commits') {
+              content += `**${itemCount}/ DEVELOPMENT ACTIVITY** - ${formatRepoName(activity.repo)}\n\n`;
+              content += `**What changed:**\n\n`;
+              activity.commits.forEach(commit => {
+                content += `• ${truncateText(commit.message, 70)} (${commit.sha})\n`;
+              });
+              content += `\n**Why it matters:**\n\n`;
+              content += `Active development continues on ${activity.repo}, with ${activity.count} commits improving the ${activity.org} ecosystem.\n\n`;
+            }
+            
+            itemCount++;
+          });
+          
+          if (content === '') {
+            content = 'No significant GitHub activity detected in the past 24 hours for monitored repositories.\n\n';
+          }
+          
+          content += `📊 **Full Development Analytics**: https://userowned.ai\n\n`;
+          content += `Built by @NEARWEEK | Follow @userownedai\n`;
+          content += `#AI #Crypto #GitHub #Development #OpenSource`;
+          
+          return title + content;
+        }
         
-        📊 AI x Crypto Intelligence:
+        function generateTwitterReport(allActivities) {
+          const title = `AI x CRYPTO GITHUB UPDATES [${today}] 📟\n\n`;
+          
+          let content = '';
+          
+          const sortedActivities = allActivities
+            .filter(activity => activity.length > 0)
+            .flat()
+            .sort((a, b) => {
+              const priority = { release: 3, pulls: 2, commits: 1 };
+              return priority[b.type] - priority[a.type];
+            })
+            .slice(0, 4);
+          
+          if (sortedActivities.length === 0) {
+            content = 'No major GitHub activity in monitored AI x Crypto repos today.\n\n';
+          } else {
+            content += 'Latest development activity:\n\n';
+            
+            sortedActivities.forEach((activity, index) => {
+              if (activity.type === 'release') {
+                content += `🚀 ${activity.org}: New release in ${formatRepoName(activity.repo)}\n`;
+              } else if (activity.type === 'pulls') {
+                const mergedCount = activity.pulls.filter(p => p.state === 'closed').length;
+                if (mergedCount > 0) {
+                  content += `🔀 ${activity.org}: ${mergedCount} PRs merged in ${formatRepoName(activity.repo)}\n`;
+                }
+              } else if (activity.type === 'commits') {
+                content += `💻 ${activity.org}: ${activity.count} commits in ${formatRepoName(activity.repo)}\n`;
+              }
+            });
+            content += '\n';
+          }
+          
+          content += `📊 Full analysis: https://userowned.ai\n\n`;
+          content += `#AI #Crypto #GitHub #OpenSource`;
+          
+          return title + content;
+        }
         
-        🔥 Top Movers:
-        • NEAR: Smart contracts +24%
-        • Bittensor: Mining optimization
-        • Fetch.ai: Agent txns +18%
-        • Injective: DeFi volume +15%
+        async function main() {
+          console.log('🚀 Starting GitHub data collection...');
+          
+          try {
+            const allActivities = [];
+            
+            for (const org of ORGS_TO_MONITOR) {
+              const activities = await fetchOrgActivity(org);
+              allActivities.push(activities);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            console.log('📊 Generating reports...');
+            
+            const telegramReport = generateTelegramReport(allActivities);
+            const twitterReport = generateTwitterReport(allActivities);
+            
+            const fs = require('fs');
+            fs.writeFileSync('telegram_report.txt', telegramReport);
+            fs.writeFileSync('twitter_report.txt', twitterReport);
+            
+            console.log('✅ Reports generated successfully!');
+            
+          } catch (error) {
+            console.error('❌ Error generating reports:', error);
+            process.exit(1);
+          }
+        }
         
-        📈 Ecosystem Health: 89/100 (+3)
-        📊 Activity: 847K transactions (+12%)
-        💰 AI DeFi TVL: \$2.4B (+8.5%)
+        main();
+        EOF
         
-        Full intelligence: https://userowned.ai
-        
-        #AI #Crypto #DeFi #NEAR"
+        node github_report_generator.js
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Read Generated Reports
+      id: reports
+      run: |
+        TELEGRAM_CONTENT=$(cat telegram_report.txt)
+        TWITTER_CONTENT=$(cat twitter_report.txt)
         
         echo "TELEGRAM_CONTENT<<EOF" >> $GITHUB_OUTPUT
         echo "$TELEGRAM_CONTENT" >> $GITHUB_OUTPUT
@@ -65,7 +316,7 @@ jobs:
         echo "$TWITTER_CONTENT" >> $GITHUB_OUTPUT
         echo "EOF" >> $GITHUB_OUTPUT
         
-        echo "DATE=$DATE" >> $GITHUB_OUTPUT
+        echo "DATE=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
     
     - name: Send to Telegram
       run: |
@@ -73,8 +324,9 @@ jobs:
           -H "Content-Type: application/json" \
           -d '{
             "chat_id": "-1001559796949",
-            "text": ${{ toJson(steps.content.outputs.TELEGRAM_CONTENT) }},
-            "parse_mode": "HTML"
+            "text": ${{ toJson(steps.reports.outputs.TELEGRAM_CONTENT) }},
+            "parse_mode": "Markdown",
+            "disable_web_page_preview": false
           }'
     
     - name: Send to X via Zapier
@@ -82,9 +334,10 @@ jobs:
         curl -X POST "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
           -d '{
-            "text": ${{ toJson(steps.content.outputs.TWITTER_CONTENT) }},
-            "source": "github-actions-automation",
-            "platform": "twitter"
+            "text": ${{ toJson(steps.reports.outputs.TWITTER_CONTENT) }},
+            "source": "github-data-automation",
+            "platform": "twitter",
+            "method": "share_now"
           }'
     
     - name: Success notification
@@ -94,6 +347,6 @@ jobs:
           -H "Content-Type: application/json" \
           -d '{
             "chat_id": "-1001559796949",
-            "text": "✅ Daily Update Automation Completed!\n\n📱 Telegram: ✅ Posted\n🐦 X/Twitter: ✅ Posted via Buffer\n📅 Date: ${{ steps.content.outputs.DATE }}\n⏰ Time: '$(date +"%H:%M UTC")''\n\n🤖 Next update: Tomorrow 9 AM UTC",
-            "parse_mode": "HTML"
+            "text": "✅ **GitHub Data Reports Sent Successfully!**\n\n📱 Telegram: ✅ Posted\n🐦 X/Twitter: ✅ Posted\n📅 Date: ${{ steps.reports.outputs.DATE }}\n📊 Data Source: Live GitHub API\n⏰ Next update: Tomorrow 9 AM UTC",
+            "parse_mode": "Markdown"
           }'
