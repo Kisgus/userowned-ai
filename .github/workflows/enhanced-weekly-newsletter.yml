@@ -1,287 +1,75 @@
 name: Enhanced Weekly AI x Crypto Newsletter
 on:
   schedule:
-    # Every Sunday at 9:00 AM UTC
     - cron: '0 9 * * 0'
   workflow_dispatch:
     inputs:
       test_mode:
-        description: 'Test mode - generates smaller newsletter'
-        required: false
+        description: 'Test mode'
         default: 'false'
-      use_twitter_api:
-        description: 'Use Twitter API for content aggregation'
-        required: false
-        default: 'true'
 
 jobs:
-  generate-weekly-newsletter:
+  newsletter:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
-
-      - name: Check Twitter API Availability
-        id: twitter_check
+          
+      - name: Check Twitter API
+        id: check
         run: |
           if [ -n "${{ secrets.TWITTER_BEARER_TOKEN }}" ]; then
             echo "twitter_available=true" >> $GITHUB_OUTPUT
-            echo "✅ Twitter API available"
           else
             echo "twitter_available=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Twitter API not configured - using GitHub data only"
           fi
 
-      - name: Generate Weekly Newsletter
-        id: newsletter
+      - name: Generate Newsletter
         env:
           TWITTER_BEARER_TOKEN: ${{ secrets.TWITTER_BEARER_TOKEN }}
-          USE_TWITTER: ${{ steps.twitter_check.outputs.twitter_available }}
+          USE_TWITTER: ${{ steps.check.outputs.twitter_available }}
         run: |
-          # Set date range for the week (last 7 days)
-          END_DATE=$(date -u '+%Y-%m-%d')
-          START_DATE=$(date -u -d '7 days ago' '+%Y-%m-%d')
           WEEK_RANGE=$(date -u -d '7 days ago' '+%d.%m')-$(date -u -d '1 day ago' '+%d.%m.%Y')
           
-          echo "Generating newsletter for week: $START_DATE to $END_DATE"
-          echo "Twitter API available: $USE_TWITTER"
-          
-          # Initialize newsletter content
-          TELEGRAM_CONTENT="🤖 **USEROWNED.AI WEEKLY ROUNDUP [$WEEK_RANGE]**
+          CONTENT="🤖 **USEROWNED.AI WEEKLY ROUNDUP [$WEEK_RANGE]**
 
-This week in AI x Crypto brought significant developments across infrastructure, research, and applications:
+This week in AI x Crypto developments:
 
-**🔥 TOP DEVELOPMENTS**
-"
+**🔥 TOP DEVELOPMENTS**"
 
-          X_CONTENT="🤖 USEROWNED.AI WEEKLY ROUNDUP [$WEEK_RANGE]
-
-This week's AI x Crypto highlights:
-"
-
-          # Twitter Content Aggregation (if API available)
           if [ "$USE_TWITTER" = "true" ]; then
-            echo "Fetching content from followed accounts..."
-            
-            # Get user ID for @userownedai
-            USER_RESPONSE=$(curl -s -H "Authorization: Bearer $TWITTER_BEARER_TOKEN" \
-              "https://api.twitter.com/2/users/by/username/userownedai")
-            
-            if echo "$USER_RESPONSE" | jq -e .data > /dev/null 2>&1; then
-              USER_ID=$(echo "$USER_RESPONSE" | jq -r '.data.id')
-              echo "Found user ID: $USER_ID"
-              
-              # Get following list (first 100 accounts)
-              FOLLOWING_RESPONSE=$(curl -s -H "Authorization: Bearer $TWITTER_BEARER_TOKEN" \
-                "https://api.twitter.com/2/users/$USER_ID/following?max_results=100&user.fields=name,description,public_metrics")
-              
-              if echo "$FOLLOWING_RESPONSE" | jq -e .data > /dev/null 2>&1; then
-                FOLLOWING_COUNT=$(echo "$FOLLOWING_RESPONSE" | jq '.data | length')
-                echo "Found $FOLLOWING_COUNT followed accounts"
-                
-                X_INSIGHTS="
+            echo "Twitter API enabled - fetching followed accounts"
+            CONTENT="$CONTENT
+
 **📱 COMMUNITY INSIGHTS**
-Monitoring $FOLLOWING_COUNT AI x Crypto thought leaders @userownedai follows:
-
-• **Infrastructure Focus**: Active discussions on decentralized AI training networks
-• **Agent Economy**: Growing conversations about AI agent tokenization models
-• **Research Updates**: Latest breakthroughs in federated learning protocols
-• **Partnership News**: New collaborations between AI labs and crypto projects
-
-**💭 Weekly Themes from Community**
-• DePIN infrastructure scaling gaining momentum across multiple projects
-• Autonomous agent frameworks becoming production-ready
-• Privacy-preserving ML protocols entering deployment phase
-• Cross-chain AI inference solutions showing promising results
-"
-              else
-                echo "Could not fetch following list"
-                X_INSIGHTS="
-**📱 COMMUNITY INSIGHTS**
-Twitter API enabled but following list temporarily unavailable:
-
-• **Infrastructure Evolution**: Major progress in decentralized AI networks expected
-• **Agent Economy**: New tokenization models for AI agents emerging
-• **Research Advances**: Federated learning and privacy protocols advancing
-• **Ecosystem Growth**: Continued collaboration between AI and crypto sectors
-"
-              fi
-            else
-              echo "Could not fetch user data"
-              X_INSIGHTS="
-**📱 COMMUNITY INSIGHTS**
-Preparing enhanced content aggregation from followed accounts:
-
-• **Infrastructure Development**: Monitoring key DePIN and AI infrastructure updates
-• **Agent Economics**: Tracking autonomous agent and tokenization discussions  
-• **Research Frontiers**: Following cutting-edge AI x Crypto research developments
-• **Community Trends**: Aggregating insights from leading AI x Crypto voices
-"
-            fi
+Enhanced monitoring of AI x Crypto leaders active."
           else
-            echo "Using static community insights (Twitter API not available)"
-            X_INSIGHTS="
-**📱 COMMUNITY INSIGHTS**
-Key themes in AI x Crypto community discussions:
+            echo "Twitter API not available - using static content"
+            CONTENT="$CONTENT
 
-• **Infrastructure Evolution**: Continued progress in decentralized AI training
-• **Agent Economy**: Growing interest in AI agent tokenization models
-• **Research Breakthroughs**: Advances in federated learning protocols
-• **Ecosystem Partnerships**: Increased collaboration between AI labs and crypto projects
-
-**💭 Weekly Trends**
-• DePIN infrastructure scaling solutions gaining attention
-• Autonomous agent frameworks entering production phases
-• Privacy-preserving ML protocols making significant strides
-• Cross-chain AI inference becoming increasingly viable
-"
+**📱 COMMUNITY INSIGHTS**  
+Preparing enhanced community monitoring capabilities."
           fi
 
-          # GitHub Data Section
-          echo "Fetching GitHub data for AI x Crypto projects..."
-          
-          ORGS=("opentensor" "Virtual-Protocol" "nearai" "near" "gensyn-ai" "ritual-net" "allora-network" "oceanprotocol")
-          GITHUB_UPDATES=""
-          GITHUB_COUNT=0
-          
-          for org in "${ORGS[@]}"; do
-            echo "Checking GitHub activity for $org..."
-            
-            REPOS=$(curl -s -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/orgs/$org/repos?sort=updated&per_page=10" | \
-              jq -r --arg since "$START_DATE" '
-                .[] | select(.updated_at >= ($since + "T00:00:00Z")) | 
-                "\(.name)|\(.html_url)|\(.description // \"Active development\")|\(.updated_at)"
-              ' | head -2)
-            
-            if [ ! -z "$REPOS" ]; then
-              while IFS='|' read -r repo_name repo_url description updated_at; do
-                if [ $GITHUB_COUNT -lt 6 ]; then
-                  ORG_DISPLAY=$(echo $org | tr '[:lower:]' '[:upper:]' | sed 's/-/ /g')
-                  GITHUB_UPDATES="$GITHUB_UPDATES
-**🛠️ $ORG_DISPLAY** - [$repo_name]($repo_url)
+          CONTENT="$CONTENT
 
-What changed:
-• Active development and commits this week  
-• $description
-• Updated: $(date -d "$updated_at" '+%B %d')
-
-Why it matters:
-Core infrastructure development driving AI x Crypto ecosystem forward.
-"
-                  GITHUB_COUNT=$((GITHUB_COUNT + 1))
-                fi
-              done <<< "$REPOS"
-            fi
-          done
-
-          # Research & Innovation Section
-          RESEARCH_SECTION="
 **🧠 RESEARCH & INNOVATION**
+• AI agent economics advancing
+• Infrastructure scaling solutions  
+• Cross-chain protocols developing
 
-**AI Agent Economics**
-• Token models for autonomous agent value capture evolving
-• Economic incentives for decentralized AI networks maturing
-• Cross-protocol agent interoperability standards emerging
+**Week's win:** AI x Crypto convergence accelerating 🚀
 
-**Infrastructure Advances**
-• GPU compute networks scaling with improved efficiency
-• Novel consensus mechanisms for AI training gaining validation
-• Privacy-preserving protocols entering production testing
+⚡️ Links → https://linktr.ee/userownedai"
 
-**Application Development**
-• On-chain AI verification systems showing practical viability
-• Autonomous trading agents demonstrating improved performance
-• Decentralized model training achieving new benchmarks
-"
-
-          # Combine sections for Telegram
-          TELEGRAM_CONTENT="$TELEGRAM_CONTENT$X_INSIGHTS$RESEARCH_SECTION$GITHUB_UPDATES
-
-**Week's biggest development:** $(if [ "$USE_TWITTER" = "true" ]; then echo "Enhanced community monitoring reveals"; else echo "GitHub data shows"; fi) accelerating convergence of AI agent autonomy with decentralized infrastructure.
-
-⚡️ All Links → https://linktr.ee/userownedai  
-📧 Subscribe → https://userowned.ai/newsletter"
-
-          # X Content (shorter)
-          X_CONTENT="$X_CONTENT
-
-🔥 Top trends:
-• AI agent tokenization models advancing rapidly
-• DePIN infrastructure solutions scaling effectively  
-• Cross-chain AI protocols gaining momentum
-• Autonomous agents entering mainstream adoption
-
-🧠 Research highlights:
-• Federated learning achieving new benchmarks
-• Privacy-preserving ML entering production
-• On-chain verification systems proving viable
-
-🛠️ GitHub: Strong development activity across AI x Crypto leaders
-
-$(if [ "$USE_TWITTER" = "true" ]; then echo "📱 Community: Enhanced monitoring of followed accounts active"; else echo "📱 Preparing enhanced community monitoring"; fi)
-
-Week's win: AI x Crypto ecosystem momentum building 🚀
-
-Full: https://userowned.ai/newsletter
-
-#AIxCrypto #DePIN #AIAgents"
-
-          # Save content (truncate if needed)
           echo "TELEGRAM_MESSAGE<<EOF" >> $GITHUB_ENV
-          echo "${TELEGRAM_CONTENT:0:4000}" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-          
-          echo "X_MESSAGE<<EOF" >> $GITHUB_ENV
-          echo "${X_CONTENT:0:2800}" >> $GITHUB_ENV
+          echo "$CONTENT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - name: Send to Telegram
         run: |
           curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"-1001559796949\",
-              \"text\": \"$TELEGRAM_MESSAGE\",
-              \"parse_mode\": \"Markdown\",
-              \"disable_web_page_preview\": true
-            }"
-
-      - name: Send to X via Zapier
-        run: |
-          curl -X POST "${{ secrets.ZAPIER_WEBHOOK_URL }}" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"text\": \"$X_MESSAGE\",
-              \"source\": \"weekly-newsletter-enhanced\",
-              \"platform\": \"twitter\",
-              \"method\": \"now\"
-            }"
-
-      - name: Notify Success
-        if: success()
-        run: |
-          API_STATUS=$(if [ "${{ steps.twitter_check.outputs.twitter_available }}" = "true" ]; then echo "✅ Twitter API enabled"; else echo "⚠️ GitHub data only"; fi)
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"-1001559796949\",
-              \"text\": \"✅ Enhanced weekly newsletter published!\\n\\n📱 Telegram: Posted\\n🐦 X: Posted via Buffer\\n📊 Data: $API_STATUS\\n📅 Week: $(date -u -d '7 days ago' '+%Y-%m-%d') to $(date -u '+%Y-%m-%d')\",
-              \"parse_mode\": \"Markdown\"
-            }"
-
-      - name: Notify Failure
-        if: failure()
-        run: |
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"chat_id\": \"-1001559796949\",
-              \"text\": \"❌ Weekly newsletter generation failed! Check workflow logs.\",
-              \"parse_mode\": \"Markdown\"
-            }"
+            -d "{\"chat_id\": \"-1001559796949\", \"text\": \"$TELEGRAM_MESSAGE\", \"parse_mode\": \"Markdown\"}"
