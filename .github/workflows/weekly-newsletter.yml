@@ -78,7 +78,7 @@ What changed:
 • Last updated: $(date -d "$updated_at" '+%B %d, %Y')
 
 Why it matters:
-This project represents key infrastructure development in the AI x Crypto space, contributing to ecosystem growth and innovation.
+This project represents key infrastructure development in the AI x Crypto space, contributing to ecosystem growth.
 "
                   GITHUB_COUNT=$((GITHUB_COUNT + 1))
                 fi
@@ -87,8 +87,6 @@ This project represents key infrastructure development in the AI x Crypto space,
           done
 
           # X Content Section (Structure for future Twitter API integration)
-          echo "Preparing X content aggregation structure..."
-          
           X_INSIGHTS="
 **📱 COMMUNITY INSIGHTS**
 Key discussions from AI x Crypto thought leaders this week:
@@ -97,12 +95,6 @@ Key discussions from AI x Crypto thought leaders this week:
 • **Agent Economy**: New tokenization models for autonomous AI agents emerging  
 • **Research Breakthroughs**: Advances in federated learning and privacy-preserving AI protocols
 • **Ecosystem Partnerships**: Growing collaboration between AI labs and crypto protocols
-
-**💭 Weekly Themes**
-• DePIN infrastructure scaling solutions gaining momentum
-• AI agent autonomy vs human oversight debate intensifying
-• Novel funding models for open-source AI development emerging
-• Regulatory clarity discussions for AI x Crypto intersection
 "
 
           # Research & Innovation Section
@@ -118,37 +110,12 @@ Key discussions from AI x Crypto thought leaders this week:
 • GPU compute networks expanding with new participants
 • Novel consensus mechanisms for AI training being proposed  
 • Privacy-preserving ML protocols making significant progress
-
-**Crypto x AI Applications**
-• On-chain AI verification systems entering development phase
-• Tokenized AI models creating new market opportunities
-• Autonomous trading agents becoming increasingly sophisticated
-"
-
-          # Market & Ecosystem Section
-          ECOSYSTEM_SECTION="
-**🌟 ECOSYSTEM HIGHLIGHTS**
-
-**Funding & Investments**
-• Continued investment in AI x Crypto infrastructure projects
-• New grant programs supporting decentralized AI research
-• Venture capital showing increased interest in AI agent economies
-
-**Partnerships & Collaborations**
-• Cross-protocol integrations enabling new AI applications
-• Academic institutions partnering with crypto AI projects
-• Traditional AI companies exploring blockchain integration
-
-**Community & Governance**
-• Growing discourse on AI governance in decentralized systems
-• New proposals for community-driven AI model development
-• Increased participation in AI x Crypto working groups
 "
 
           # Combine all sections for Telegram
-          TELEGRAM_CONTENT="$TELEGRAM_CONTENT$X_INSIGHTS$RESEARCH_SECTION$GITHUB_UPDATES$ECOSYSTEM_SECTION
+          TELEGRAM_CONTENT="$TELEGRAM_CONTENT$X_INSIGHTS$RESEARCH_SECTION$GITHUB_UPDATES
 
-**Week's biggest development:** The convergence of AI agent autonomy with decentralized infrastructure continues accelerating, with major breakthroughs in tokenization models and cross-chain AI protocols.
+**Week's biggest development:** The convergence of AI agent autonomy with decentralized infrastructure continues accelerating.
 
 ⚡️ All Links → https://linktr.ee/userownedai
 📧 Subscribe → https://userowned.ai/newsletter"
@@ -158,28 +125,22 @@ Key discussions from AI x Crypto thought leaders this week:
 
 🔥 Top trends:
 • AI agent tokenization models evolving rapidly
-• DePIN infrastructure scaling breakthrough solutions
-• Cross-chain AI inference protocols advancing
-• Autonomous economic agents gaining mainstream attention
+• DePIN infrastructure scaling solutions advancing
+• Cross-chain AI inference protocols gaining momentum
+• Autonomous economic agents entering mainstream
 
 🧠 Research focus:
-• Federated learning making significant strides
-• Privacy-preserving ML protocols showing promise
-• On-chain AI verification systems in development
+• Federated learning breakthroughs
+• Privacy-preserving ML protocols advancing
+• On-chain AI verification systems developing
 
-🛠️ GitHub activity:
-Strong development momentum from AI x Crypto leaders across infrastructure and applications
+🛠️ GitHub activity from AI x Crypto leaders showing strong momentum
 
-💰 Ecosystem growth:
-• New funding models for open-source AI emerging
-• Academic partnerships with crypto AI projects increasing
-• Community governance discussions intensifying
-
-Week's win: AI x Crypto convergence accelerating across all fronts 🚀
+Week's win: AI x Crypto convergence accelerating 🚀
 
 Full newsletter: https://userowned.ai/newsletter"
 
-          # Save content to environment variables (truncate if too long)
+          # Save content to environment variables
           echo "TELEGRAM_MESSAGE<<EOF" >> $GITHUB_ENV
           echo "${TELEGRAM_CONTENT:0:4000}" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -217,7 +178,7 @@ Full newsletter: https://userowned.ai/newsletter"
             -H "Content-Type: application/json" \
             -d "{
               \"chat_id\": \"-1001559796949\",
-              \"text\": \"✅ Weekly AI x Crypto newsletter successfully published!\\n\\n📱 Telegram: Posted to The Pool\\n🐦 X: Posted via Buffer\\n📅 Coverage: $(date -u -d '7 days ago' '+%Y-%m-%d') to $(date -u '+%Y-%m-%d')\",
+              \"text\": \"✅ Weekly AI x Crypto newsletter published!\\n\\n📱 Telegram: Posted\\n🐦 X: Posted via Buffer\\n📅 Week: $(date -u -d '7 days ago' '+%Y-%m-%d') to $(date -u '+%Y-%m-%d')\",
               \"parse_mode\": \"Markdown\"
             }"
 
@@ -228,6 +189,6 @@ Full newsletter: https://userowned.ai/newsletter"
             -H "Content-Type: application/json" \
             -d "{
               \"chat_id\": \"-1001559796949\",
-              \"text\": \"❌ Weekly newsletter generation failed!\\n\\nPlease check the workflow logs for details.\",
+              \"text\": \"❌ Weekly newsletter generation failed! Check workflow logs.\",
               \"parse_mode\": \"Markdown\"
             }"
