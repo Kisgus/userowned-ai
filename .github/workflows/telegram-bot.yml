@@ -14,7 +14,7 @@ jobs:
       with:
         node-version: '18'
     - run: npm install axios
-    - name: Run Telegram Bot
+    - name: Run Bot
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       run: |
@@ -23,146 +23,101 @@ jobs:
         const fs = require('fs');
         const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
         const BASE_URL = \`https://api.telegram.org/bot\${BOT_TOKEN}\`;
-        
         let lastUpdateId = 0;
         let subscribers = [];
-        
-        try { 
-          if (fs.existsSync('last_update.txt')) lastUpdateId = parseInt(fs.readFileSync('last_update.txt', 'utf8')); 
-        } catch (e) {}
-        
-        try { 
-          if (fs.existsSync('subscribers.json')) subscribers = JSON.parse(fs.readFileSync('subscribers.json', 'utf8')); 
-        } catch (e) {}
-        
+        try { if (fs.existsSync('last_update.txt')) lastUpdateId = parseInt(fs.readFileSync('last_update.txt', 'utf8')); } catch (e) {}
+        try { if (fs.existsSync('subscribers.json')) subscribers = JSON.parse(fs.readFileSync('subscribers.json', 'utf8')); } catch (e) {}
         async function getUpdates() {
           try {
-            const response = await axios.get(\`\${BASE_URL}/getUpdates\`, { 
-              params: { offset: lastUpdateId + 1, timeout: 30 } 
-            });
+            const response = await axios.get(\`\${BASE_URL}/getUpdates\`, { params: { offset: lastUpdateId + 1, timeout: 30 } });
             return response.data.result;
-          } catch (error) { 
-            console.error('Error getting updates:', error.message); 
-            return []; 
-          }
+          } catch (error) { console.error('Error:', error.message); return []; }
         }
-        
         async function sendMessage(chatId, text) {
           try {
-            await axios.post(\`\${BASE_URL}/sendMessage\`, { 
-              chat_id: chatId, 
-              text: text, 
-              parse_mode: 'Markdown' 
-            });
-          } catch (error) { 
-            console.error('Error sending message:', error.message); 
-          }
+            await axios.post(\`\${BASE_URL}/sendMessage\`, { chat_id: chatId, text: text, parse_mode: 'Markdown' });
+          } catch (error) { console.error('Error:', error.message); }
         }
-        
         async function getNearPrice() {
           try {
             const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=near&vs_currencies=usd&include_24hr_change=true');
             const data = response.data.near;
-            return \`💰 *NEAR Protocol Price*\\n\\nPrice: $\${data.usd}\\n24h Change: \${data.usd_24h_change?.toFixed(2)}%\`;
-          } catch (error) { 
-            return '❌ Unable to fetch NEAR price'; 
-          }
+            return \`💰 *NEAR Price*\\n\\nPrice: $\${data.usd}\\n24h: \${data.usd_24h_change?.toFixed(2)}%\`;
+          } catch (error) { return '❌ Price unavailable'; }
         }
-        
         async function getCryptoNews() {
           try {
             const response = await axios.get('https://www.reddit.com/r/CryptoCurrency/.json?limit=5');
-            let news = '📰 *Latest Crypto News*\\n\\n';
+            let news = '📰 *Crypto News*\\n\\n';
             response.data.data.children.slice(0, 3).forEach((post, index) => {
               const title = post.data.title.substring(0, 80) + (post.data.title.length > 80 ? '...' : '');
               news += \`\${index + 1}. [\${title}](https://reddit.com\${post.data.permalink})\\n\\n\`;
             });
             return news;
-          } catch (error) { 
-            return '❌ Unable to fetch news'; 
-          }
+          } catch (error) { return '❌ News unavailable'; }
         }
-        
         async function processCommand(message) {
           const chatId = message.chat.id;
           const text = message.text?.toLowerCase() || '';
           const userId = message.from.id;
-          
           switch (text) {
             case '/start':
-              await sendMessage(chatId, '🤖 *Welcome to NEARWEEK Bot!*\\n\\nGet NEAR Protocol news, prices, and newsletter updates.\\n\\nUse /help for commands.');
+              await sendMessage(chatId, '🤖 *NEARWEEK Bot*\\n\\nNEAR news, prices, newsletter.\\n\\n/help for commands');
               break;
-              
             case '/help':
-              await sendMessage(chatId, '🔧 *Available Commands:*\\n\\n/start - Start bot\\n/subscribe - Subscribe to newsletter\\n/unsubscribe - Unsubscribe\\n/price - NEAR price\\n/news - Crypto news\\n/stats - Newsletter stats\\n/help - Show commands');
+              await sendMessage(chatId, '🔧 *Commands:*\\n\\n/start /subscribe /unsubscribe /price /news /stats /help');
               break;
-              
             case '/subscribe':
               if (!subscribers.find(sub => sub.userId === userId)) {
-                subscribers.push({ 
-                  userId, 
-                  chatId, 
-                  username: message.from.username || 'Unknown', 
-                  subscribedAt: new Date().toISOString() 
-                });
+                subscribers.push({ userId, chatId, username: message.from.username || 'Unknown', subscribedAt: new Date().toISOString() });
                 fs.writeFileSync('subscribers.json', JSON.stringify(subscribers, null, 2));
-                await sendMessage(chatId, '✅ Successfully subscribed to NEARWEEK newsletter!');
+                await sendMessage(chatId, '✅ Subscribed to NEARWEEK!');
               } else {
                 await sendMessage(chatId, '✅ Already subscribed!');
               }
               break;
-              
             case '/unsubscribe':
               const index = subscribers.findIndex(sub => sub.userId === userId);
               if (index !== -1) {
                 subscribers.splice(index, 1);
                 fs.writeFileSync('subscribers.json', JSON.stringify(subscribers, null, 2));
-                await sendMessage(chatId, '✅ Unsubscribed from newsletter');
+                await sendMessage(chatId, '✅ Unsubscribed');
               } else {
                 await sendMessage(chatId, '❌ Not subscribed');
               }
               break;
-              
             case '/price':
               const priceInfo = await getNearPrice();
               await sendMessage(chatId, priceInfo);
               break;
-              
             case '/news':
               const newsInfo = await getCryptoNews();
               await sendMessage(chatId, newsInfo);
               break;
-              
             case '/stats':
-              await sendMessage(chatId, \`📊 *NEARWEEK Stats*\\n\\nSubscribers: \${subscribers.length}\\nLatest: [NEARWEEK.com](https://nearweek.com)\`);
+              await sendMessage(chatId, \`📊 *Stats*\\n\\nSubscribers: \${subscribers.length}\\n[NEARWEEK.com](https://nearweek.com)\`);
               break;
-              
             default:
               if (text.startsWith('/')) {
-                await sendMessage(chatId, 'Unknown command. Use /help for available commands.');
+                await sendMessage(chatId, 'Unknown command. Use /help');
               }
           }
         }
-        
         async function main() {
-          console.log('Polling Telegram updates...');
+          console.log('Polling...');
           const updates = await getUpdates();
-          
           for (const update of updates) {
             if (update.message) {
               await processCommand(update.message);
             }
             lastUpdateId = Math.max(lastUpdateId, update.update_id);
           }
-          
           fs.writeFileSync('last_update.txt', lastUpdateId.toString());
-          console.log(\`Processed \${updates.length} updates. Last ID: \${lastUpdateId}\`);
+          console.log(\`Processed \${updates.length} updates. ID: \${lastUpdateId}\`);
         }
-        
         main().catch(console.error);
         "
-    - name: Commit updates
-      run: |
+    - run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add -A
