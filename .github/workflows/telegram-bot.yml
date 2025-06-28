@@ -1,0 +1,264 @@
+name: NEARWEEK Telegram Bot Polling
+
+on:
+  schedule:
+    - cron: '*/2 * * * *'  # Every 2 minutes for better responsiveness
+  workflow_dispatch:
+
+jobs:
+  telegram-bot:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        npm init -y
+        npm install axios
+        
+    - name: Poll Telegram and Process Commands
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
+      run: |
+        cat > bot.js << 'EOF'
+        const axios = require('axios');
+        const fs = require('fs');
+        
+        const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+        const BASE_URL = `https://api.telegram.org/bot${BOT_TOKEN}`;
+        
+        // Load last update ID
+        let lastUpdateId = 0;
+        try {
+          if (fs.existsSync('last_update.txt')) {
+            lastUpdateId = parseInt(fs.readFileSync('last_update.txt', 'utf8'));
+          }
+        } catch (e) {
+          console.log('No previous update ID found');
+        }
+        
+        // Load user subscriptions
+        let subscribers = [];
+        try {
+          if (fs.existsSync('subscribers.json')) {
+            subscribers = JSON.parse(fs.readFileSync('subscribers.json', 'utf8'));
+          }
+        } catch (e) {
+          console.log('No subscribers file found');
+        }
+        
+        async function getUpdates() {
+          try {
+            const response = await axios.get(`${BASE_URL}/getUpdates`, {
+              params: { offset: lastUpdateId + 1, timeout: 30 }
+            });
+            return response.data.result;
+          } catch (error) {
+            console.error('Error getting updates:', error.message);
+            return [];
+          }
+        }
+        
+        async function sendMessage(chatId, text, options = {}) {
+          try {
+            await axios.post(`${BASE_URL}/sendMessage`, {
+              chat_id: chatId,
+              text: text,
+              parse_mode: 'Markdown',
+              ...options
+            });
+          } catch (error) {
+            console.error('Error sending message:', error.message);
+          }
+        }
+        
+        async function getNearPrice() {
+          try {
+            const response = await axios.get(
+              'https://api.coingecko.com/api/v3/simple/price?ids=near&vs_currencies=usd&include_24hr_change=true'
+            );
+            const data = response.data.near;
+            return `💰 *NEAR Protocol Price*\n\n` +
+                   `Price: $${data.usd}\n` +
+                   `24h Change: ${data.usd_24h_change?.toFixed(2)}%`;
+          } catch (error) {
+            return '❌ Unable to fetch NEAR price at the moment';
+          }
+        }
+        
+        async function getCryptoNews() {
+          try {
+            // Using free RSS feeds from major crypto news sources
+            const sources = [
+              { name: 'CoinDesk', url: 'https://www.coindesk.com/arc/outboundfeeds/rss/' },
+              { name: 'CoinTelegraph', url: 'https://cointelegraph.com/rss' },
+              { name: 'Decrypt', url: 'https://decrypt.co/feed' }
+            ];
+            
+            // For GitHub Actions, we'll use a simple approach with Reddit JSON API
+            const response = await axios.get('https://www.reddit.com/r/CryptoCurrency/.json?limit=5');
+            
+            let news = '📰 *Latest Crypto News (Reddit)*\n\n';
+            response.data.data.children.slice(0, 3).forEach((post, index) => {
+              const title = post.data.title.substring(0, 80) + (post.data.title.length > 80 ? '...' : '');
+              news += `${index + 1}. [${title}](https://reddit.com${post.data.permalink})\n\n`;
+            });
+            return news;
+          } catch (error) {
+            return '❌ Unable to fetch news at the moment';
+          }
+        }
+        
+        async function getDuneAnalytics() {
+          try {
+            // Example Dune query for NEAR ecosystem data
+            const response = await axios.get('https://api.dune.com/api/v1/query/[QUERY_ID]/results', {
+              headers: {
+                'X-Dune-API-Key': process.env.DUNE_API_KEY
+              }
+            });
+            
+            return `📊 *NEAR Ecosystem Analytics*\n\n` +
+                   `Data powered by Dune Analytics\n` +
+                   `[View Dashboard](https://dune.com/nearprotocol)`;
+          } catch (error) {
+            return '❌ Unable to fetch analytics data';
+          }
+        }
+        
+        function getNewsletterStats() {
+          return `📊 *NEARWEEK Newsletter Stats*\n\n` +
+                 `Subscribers: ${subscribers.length}\n` +
+                 `Latest Issue: [View Archive](https://nearweek.com)\n` +
+                 `Active Since: 2021`;
+        }
+        
+        async function processCommand(message) {
+          const chatId = message.chat.id;
+          const text = message.text?.toLowerCase() || '';
+          const userId = message.from.id;
+          
+          switch (text) {
+            case '/start':
+              await sendMessage(chatId, 
+                `🤖 *Welcome to NEARWEEK Bot!*\n\n` +
+                `Get the latest NEAR Protocol news, prices, and newsletter updates.\n\n` +
+                `Use /help to see all available commands.`
+              );
+              break;
+              
+            case '/help':
+              await sendMessage(chatId,
+                `🔧 *Available Commands:*\n\n` +
+                `/start - Start the bot\n` +
+                `/subscribe - Subscribe to newsletter\n` +
+                `/unsubscribe - Unsubscribe from updates\n` +
+                `/latest - Get latest newsletter\n` +
+                `/price - NEAR Protocol price\n` +
+                `/news - Latest crypto news\n` +
+                `/analytics - NEAR ecosystem data\n` +
+                `/stats - Newsletter statistics\n` +
+                `/help - Show this menu`
+              );
+              break;
+              
+            case '/subscribe':
+              if (!subscribers.find(sub => sub.userId === userId)) {
+                subscribers.push({
+                  userId: userId,
+                  chatId: chatId,
+                  username: message.from.username || 'Unknown',
+                  subscribedAt: new Date().toISOString()
+                });
+                fs.writeFileSync('subscribers.json', JSON.stringify(subscribers, null, 2));
+                await sendMessage(chatId, '✅ Successfully subscribed to NEARWEEK newsletter!');
+              } else {
+                await sendMessage(chatId, '✅ You are already subscribed!');
+              }
+              break;
+              
+            case '/unsubscribe':
+              const index = subscribers.findIndex(sub => sub.userId === userId);
+              if (index !== -1) {
+                subscribers.splice(index, 1);
+                fs.writeFileSync('subscribers.json', JSON.stringify(subscribers, null, 2));
+                await sendMessage(chatId, '✅ Successfully unsubscribed from newsletter');
+              } else {
+                await sendMessage(chatId, '❌ You are not subscribed');
+              }
+              break;
+              
+            case '/price':
+              const priceInfo = await getNearPrice();
+              await sendMessage(chatId, priceInfo);
+              break;
+              
+            case '/news':
+              const newsInfo = await getCryptoNews();
+              await sendMessage(chatId, newsInfo);
+              break;
+              
+            case '/analytics':
+              const analytics = await getDuneAnalytics();
+              await sendMessage(chatId, analytics);
+              break;
+              
+            case '/stats':
+              const stats = getNewsletterStats();
+              await sendMessage(chatId, stats);
+              break;
+              
+            case '/latest':
+              await sendMessage(chatId, 
+                `📧 *Latest NEARWEEK Newsletter*\n\n` +
+                `Read the latest issue: [NEARWEEK.com](https://nearweek.com)\n\n` +
+                `Use /subscribe to get notified of new issues!`
+              );
+              break;
+              
+            default:
+              if (text.startsWith('/')) {
+                await sendMessage(chatId, 'Unknown command. Use /help to see available commands.');
+              }
+              break;
+          }
+        }
+        
+        async function main() {
+          console.log('Polling for Telegram updates...');
+          
+          const updates = await getUpdates();
+          
+          for (const update of updates) {
+            if (update.message) {
+              await processCommand(update.message);
+            }
+            lastUpdateId = Math.max(lastUpdateId, update.update_id);
+          }
+          
+          // Save last update ID
+          fs.writeFileSync('last_update.txt', lastUpdateId.toString());
+          
+          console.log(`Processed ${updates.length} updates. Last ID: ${lastUpdateId}`);
+        }
+        
+        main().catch(console.error);
+        EOF
+        
+        node bot.js
+        
+    - name: Commit subscriber updates
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git diff --staged --quiet || git commit -m "Update bot state and subscribers"
+        git push || echo "No changes to push"
