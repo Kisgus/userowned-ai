@@ -1,57 +1,73 @@
-# 🤖 UserOwned.ai by NEARWEEK
+# UserOwned.AI
 
-> The most comprehensive AI x crypto ecosystem intelligence platform
+Prior NEARWEEK work on AI x crypto ecosystem intelligence.
 
-## 🎯 Mission
+This repo is part of the background arc behind the current SAIBA work: turning
+fast-moving public signals into structured intelligence, reviewable narratives,
+and distribution workflows.
 
-UserOwned.ai delivers real-time, data-driven analysis of artificial intelligence and cryptocurrency convergence. Our intelligence reports combine GitHub development tracking, DeFi financial metrics, and on-chain adoption signals to provide VC-grade investment insights.
+## Status
 
-## 📊 What We Track
+Prior work / public archive.
 
-### AI Cryptocurrency Ecosystems
-- **NEAR Protocol** - AI-ready infrastructure with intent execution
-- **Internet Computer** - On-chain AI model hosting
-- **Bittensor** - Decentralized machine learning
-- **The Graph** - Data indexing for AI applications
-- **Injective** - AI-powered trading protocols
-- **Fetch.ai** - Autonomous agent systems
-- **Akash Network** - Decentralized cloud computing
-- **Render Network** - Distributed GPU rendering
+The repo is useful as a technical and product reference. Treat setup notes,
+automation docs, and API details as historical context, not as a current
+production runbook.
 
-### Data Sources
-- ✅ **GitHub API** - Real-time development velocity tracking
-- ✅ **DefiLlama** - Verified on-chain financial metrics
-- ✅ **DappRadar** - User adoption and activity signals
-- ✅ **Dune Analytics** - On-chain transaction intelligence
+## What It Explored
 
-## 🧮 Scoring Methodology
+- Monitoring AI x crypto ecosystems across public development, market, and
+  adoption signals.
+- Turning noisy source streams into structured intelligence reports.
+- Using templates for daily/weekly ecosystem updates.
+- Routing public signals into editorial and social-media workflows.
+- Combining human editorial judgment with automated collection.
 
-Our proprietary algorithm generates 0-100 ecosystem scores:
+## Ecosystem Scope
 
-```
-Ecosystem Score = (Development Quality × 40%) + 
-                  (Adoption Metrics × 35%) + 
-                  (Financial Performance × 25%)
-```
+The project looked at ecosystems where AI, crypto infrastructure, and open-web
+coordination overlap, including:
 
-## 🚀 About NEARWEEK
+- NEAR Protocol
+- Internet Computer
+- Bittensor
+- The Graph
+- Injective
+- Fetch.ai
+- Akash Network
+- Render Network
 
-UserOwned.ai is developed by [NEARWEEK](https://nearweek.com), the leading NEAR Protocol ecosystem intelligence platform with:
+## Source Types
 
-- 📧 **25,000** newsletter subscribers
-- 🐦 **81,000** X followers
-- 📊 **3+ years** of crypto ecosystem analysis
-- 🎯 **Trusted** by VCs, developers, and institutions
+The system was designed around public or API-accessible signals such as:
 
-## 📞 Contact & Distribution
+- GitHub activity,
+- DeFi and ecosystem metrics,
+- on-chain dashboards,
+- public social/news signals,
+- manually reviewed editorial context.
 
-- **Website**: [userowned.ai](https://userowned.ai)
-- **X/Twitter**: [@userownedai](https://twitter.com/userownedai)
-- **Newsletter**: [Subscribe](https://userowned.ai/newsletter)
-- **Parent Brand**: [@NEARWEEK](https://twitter.com/NEARWEEK)
+## What It Proves
 
----
+| Area | Proof |
+| --- | --- |
+| Intelligence workflow | Public signals can be routed into structured reports instead of one-off notes. |
+| Content operations | Automated collection is useful only when paired with review and editorial judgment. |
+| AI x crypto thesis | Fast-moving ecosystems need memory, source discipline, and repeatable analysis. |
+| Bridge to SAIBA | The same pattern now shows up in Agency OS and the Customer Event Flywheel. |
 
-*Building the Bloomberg Terminal for AI x crypto convergence*
+## Public-Safe Boundary
 
-**UserOwned.ai by NEARWEEK** | The future of decentralized intelligence
+This repo should not be read as an autopublishing system.
+
+- Human review is expected before public distribution.
+- API keys, webhook secrets, customer data, and private operational details do
+  not belong in the public surface.
+- Older setup docs may reference integrations that should be rechecked before
+  reuse.
+
+## Related
+
+- [Gus profile](https://github.com/Kisgus)
+- [SAIBA Agency OS](https://github.com/Kisgus/saiba-agency-os)
+- [Customer Event Flywheel](https://github.com/Kisgus/customer-event-flywheel)
