@@ -56,6 +56,13 @@ The system was designed around public or API-accessible signals such as:
 | AI x crypto thesis | Fast-moving ecosystems need memory, source discipline, and repeatable analysis. |
 | Bridge to SAIBA | The same pattern now shows up in Agency OS and the Customer Event Flywheel. |
 
+## Why It Matters
+
+For the public Gus/Kisgus profile, this repo is the bridge between open-web
+ecosystem work and the current agentic workflow direction. It shows that the
+interest in AI x crypto, source discipline, and content operations predates
+SAIBA; SAIBA is the current synthesis, not a random pivot.
+
 ## Public-Safe Boundary
 
 This repo should not be read as an autopublishing system.
